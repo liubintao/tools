@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +21,9 @@ public class FileCopy {
 
     private static final String CHARSET = "GBK";
     private static final Pattern PROFILE_PATTERN = Pattern.compile("(src/profile/\\w{3,4}/)|(src/main/resources/(dev|test|sit|uat|prod)/)");
+    private static final AtomicBoolean hasCommonLib = new AtomicBoolean(false);
+    private static final Set<String> projectSet = new HashSet<>();
+    private static final String COMMON_LIB_NAME = "common-lib-0.0.1-SNAPSHOT.jar";
 
     public static void main(String[] args) throws IOException {
         /**
@@ -33,10 +39,10 @@ public class FileCopy {
         String file = args[2];
 
         List<String> lines = Files.readAllLines(Paths.get(file), Charset.forName(CHARSET));
+        Path sourceDirectory = Paths.get(sourcePath);
+        Path targetDirectory = Paths.get(targetPath);
         lines.stream().forEach(
                 s -> {
-                    Path sourceDirectory = Paths.get(sourcePath);
-                    Path targetDirectory = Paths.get(targetPath);
                     try {
                         Files.createDirectories(targetDirectory);
                         copy(s, sourceDirectory, targetDirectory);
@@ -46,10 +52,19 @@ public class FileCopy {
                     }
                 }
         );
+        copyCommonLib(sourceDirectory, targetDirectory);
     }
 
     private static void copy(String line, Path sourceDirectory, Path targetDirectory) throws IOException {
         String tempLine = line;
+        String projectName = tempLine.substring(0, tempLine.indexOf("/"));
+        if (!projectSet.contains(projectName) && !tempLine.startsWith("common-lib/")) {
+            projectSet.add(projectName);
+        }
+        if (!hasCommonLib.get() && tempLine.startsWith("common-lib/")) {
+            hasCommonLib.compareAndSet(false, true);
+            return;
+        }
         if(tempLine.indexOf("WebContent") != -1) {
             tempLine = tempLine.replace("WebContent/", "");
             copy(sourceDirectory.resolve(tempLine), Files.createDirectories(targetDirectory.resolve(tempLine)));
@@ -102,5 +117,19 @@ public class FileCopy {
     private static void copy(Path source, Path target) throws IOException {
         Files.createDirectories(target);
         Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    private static void copyCommonLib(Path source, Path target) throws IOException {
+        if (hasCommonLib.get()) {
+            if (projectSet.isEmpty()) {
+                System.out.println("需要从其他项目中copy出lib包..............................");
+            } else {
+                target = target.resolve("common-lib/WEB-INF/lib");
+                Files.createDirectories(target);
+                Files.copy(source.resolve(projectSet.iterator().next()).resolve("WEB-INF/lib").resolve(COMMON_LIB_NAME), target.resolve(COMMON_LIB_NAME), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } else {
+            System.out.println("没有common-lib包需要处理!");
+        }
     }
 }
