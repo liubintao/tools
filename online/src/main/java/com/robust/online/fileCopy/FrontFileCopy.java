@@ -36,10 +36,10 @@ public class FrontFileCopy {
         final Set<String> commonSet = new HashSet<>();
 
         List<String> lines = Files.readAllLines(Paths.get(file), Charset.forName(CHARSET));
+        Path sourceDirectory = Paths.get(sourcePath);
+        Path targetDirectory = Paths.get(targetPath);
         lines.stream().forEach(
                 s -> {
-                    Path sourceDirectory = Paths.get(sourcePath);
-                    Path targetDirectory = Paths.get(targetPath);
                     try {
                         Files.createDirectories(targetDirectory);
                         copy(s, sourceDirectory, targetDirectory, commonSet, projectSet);
@@ -49,6 +49,7 @@ public class FrontFileCopy {
                     }
                 }
         );
+        copyCommon(sourceDirectory, targetDirectory, commonSet, projectSet);
     }
 
     public static void copy(String line, Path sourceDirectory, Path targetDirectory, Set<String> commonSet, Set<String> projectSet) throws IOException {
@@ -60,19 +61,26 @@ public class FrontFileCopy {
             String projectName = tempLine.substring(0, tempLine.indexOf("/"));
             //如果还没有执行过此项目的复制过程，则需将commonSet里的每一个文件copy到此项目中
             if (!projectSet.contains(projectName)) {
-                commonSet.stream().forEach(s -> {
-                    String tempCommon = s.replace("common/", projectName + "/");
-                    try {
-                        copy(sourceDirectory.resolve(tempCommon), Files.createDirectories(targetDirectory.resolve(tempCommon)));
-                    } catch (IOException e) {
-                        System.out.printf("复制文件过程失败，目标目录：%s，文件名：%s，错误信息：%s", targetDirectory, s, e);
-                    }
-                });
+                projectSet.add(projectName);
             }
             //执行当前文件的copy
             copy(sourceDirectory.resolve(tempLine), Files.createDirectories(targetDirectory.resolve(tempLine)));
-            projectSet.add(projectName);
         }
+    }
+
+    private static void copyCommon(Path sourceDirectory, Path targetDirectory, Set<String> commonSet, Set<String> projectSet) throws IOException {
+        if (projectSet.isEmpty()) {
+            System.out.println("需要提供一个上线包!");
+            return;
+        }
+        commonSet.stream().forEach(s -> {
+            String tempCommon = s.replace("common/", projectSet.iterator().next() + "/");
+            try {
+                copy(sourceDirectory.resolve(tempCommon), Files.createDirectories(targetDirectory.resolve(s)));
+            } catch (IOException e) {
+                System.out.printf("复制文件过程失败，目标目录：%s，文件名：%s，错误信息：%s", targetDirectory, s, e);
+            }
+        });
     }
 
     private static void copy(Path source, Path target) throws IOException {
