@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 public class FileCopy {
 
     private static final String CHARSET = "GBK";
-    private static final Pattern PROFILE_PATTERN = Pattern.compile("(src/profile/\\w{3,4}/)|(src/main/resources/(dev|test|sit|uat|prod)/)");
+    private static final Pattern PROFILE_PATTERN = Pattern.compile("(src/profile/prod/)|(src/main/resources/prod/)");
     private static final AtomicBoolean hasCommonLib = new AtomicBoolean(false);
     private static final Set<String> projectSet = new HashSet<>();
     private static final String COMMON_LIB_NAME = "common-lib-0.0.1-SNAPSHOT.jar";
