@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
@@ -18,12 +19,22 @@ public class ReadBigFile {
 
     static final int BUFFER_SIZE = 1024;
 
-    public static void main(String[] args) {
-        Path path = Paths.get("H:\\xtwy\\doc\\开发库\\16.上线日志\\201901\\20190116\\log-soa1\\businessService-01-16-2019-1.appLog");
+    public static void main(String[] args) throws IOException {
+        Path path = Paths.get("H:\\xtwy\\doc\\开发库\\16.上线日志\\201901\\20190116\\log-soa1");
         execute(path);
     }
 
-    private static void execute(Path path) {
+    private static void execute(Path path) throws IOException {
+        if (Files.isDirectory(path)) {
+            Files.list(path).forEach(p -> {
+                singleExecute(p);
+            });
+        } else {
+            singleExecute(path);
+        }
+    }
+
+    private static void singleExecute(Path path) {
         try {
             FileChannel channel = FileChannel.open(path);
             int len = (int) channel.size();
@@ -54,7 +65,7 @@ public class ReadBigFile {
         String str = new String(bytes);
         String[] ss = str.split("\n");
         Stream.of(ss).filter(s ->
-                        s.contains("CreditDetailsTimeQuery.getSequenceNumberAction3")
+                        s.contains("IDC001-18.73.51.18-taskman-1547604900000yaHvIhc")
 //                                        && s.contains("20190116114526")
 //                        s.contains("IDC001-18.73.51.3-inmanage-1547610949608P8lOBzI")
         ).forEach(str1 -> {
