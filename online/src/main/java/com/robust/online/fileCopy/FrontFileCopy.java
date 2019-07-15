@@ -19,6 +19,7 @@ import java.util.Set;
 public class FrontFileCopy {
 
     private static final String CHARSET = "GBK";
+    private static final String VERSION_CONTROL = "app//seed.js";
 
     public static void main(String[] args) throws IOException {
         /**
@@ -26,9 +27,9 @@ public class FrontFileCopy {
          * 目标文件夹名字通过args[1]传过来
          * 要处理的文件名通过args[2]传过来
          */
-        /*final String sourcePath = "H:\\tools\\project";
-        final String targetPath = "H:\\tools\\target";
-        String file = "H:\\tools\\svn.txt";*/
+//        final String sourcePath = "H:\\xtwy\\tools\\project";
+//        final String targetPath = "H:\\xtwy\\tools\\target";
+//        String file = "H:\\xtwy\\tools\\svn.txt";
         final String sourcePath = args[0];
         final String targetPath = args[1];
         String file = args[2];
@@ -38,7 +39,7 @@ public class FrontFileCopy {
         List<String> lines = Files.readAllLines(Paths.get(file), Charset.forName(CHARSET));
         Path sourceDirectory = Paths.get(sourcePath);
         Path targetDirectory = Paths.get(targetPath);
-        lines.stream().forEach(
+        lines.stream().filter((s) -> s.trim().length() > 0).forEach(
                 s -> {
                     try {
                         Files.createDirectories(targetDirectory);
@@ -49,7 +50,14 @@ public class FrontFileCopy {
                     }
                 }
         );
+        /**
+         * 公共文件复制到单独的文件夹
+         */
         copyCommon(sourceDirectory, targetDirectory, commonSet, projectSet);
+        /**
+         * 复制每个项目的版本控制文件
+         */
+        copyVersionControl(VERSION_CONTROL, sourceDirectory, targetDirectory, projectSet);
     }
 
     public static void copy(String line, Path sourceDirectory, Path targetDirectory, Set<String> commonSet, Set<String> projectSet) throws IOException {
@@ -79,6 +87,16 @@ public class FrontFileCopy {
                 copy(sourceDirectory.resolve(tempCommon), Files.createDirectories(targetDirectory.resolve(s)));
             } catch (IOException e) {
                 System.out.printf("复制文件过程失败，目标目录：%s，文件名：%s，错误信息：%s", targetDirectory, s, e);
+            }
+        });
+    }
+
+    private static void copyVersionControl(String versionControl, Path sourceDirectory, Path targetDirectory, Set<String> projectSet) {
+        projectSet.stream().forEach((pro) -> {
+            try {
+                copy(sourceDirectory.resolve(pro).resolve(versionControl), Files.createDirectories(targetDirectory.resolve(pro).resolve(versionControl)));
+            } catch (IOException e) {
+                System.out.printf("复制文件过程失败，目标目录：%s，文件名：%s，错误信息：%s", targetDirectory, versionControl, e);
             }
         });
     }
